@@ -15,9 +15,34 @@ import java.util.stream.Stream;
 public class PubSub2 {
     public static void main(String[] args) {
         Publisher<Integer> pub = iterPub(Stream.iterate(1, a -> a + 1).limit(10).collect(Collectors.toList()));
-        Publisher<Integer> mapPub = mapPub(pub, s -> s * 10);
-        Publisher<Integer> map2Pub = mapPub(mapPub, s -> -s);
-        map2Pub.subscribe(logSub());
+//        Publisher<Integer> mapPub = mapPub(pub, s -> s * 10);
+//        Publisher<Integer> map2Pub = mapPub(mapPub, s -> -s);
+        Publisher<Integer> sumPub = sumPub(pub);
+       sumPub.subscribe(logSub());
+    }
+
+    private static Publisher<Integer> sumPub(Publisher<Integer> pub) {
+        // 이런 것 다 람다식으로 변경 가능
+        return new Publisher<Integer>() {
+            @Override
+            public void subscribe(Subscriber<? super Integer> sub) {
+                pub.subscribe(new DelegateSub(sub){
+                    int sum = 0;
+
+                    @Override
+                    public void onNext(Integer integer) {
+                        sum += integer;
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        System.out.println(sum);
+                        sub.onNext(sum);
+                        sub.onComplete();
+                    }
+                });
+            }
+        };
     }
 
     private static Publisher<Integer> mapPub(Publisher<Integer> pub, Function<Integer, Integer> f) {
@@ -28,7 +53,7 @@ public class PubSub2 {
                 pub.subscribe(new DelegateSub(sub) {
                     @Override
                     public void onNext(Integer integer) {
-                        super.onNext(f.apply(integer));
+                        sub.onNext(f.apply(integer));
                     }
                 });
             }
@@ -69,6 +94,7 @@ public class PubSub2 {
                     public void request(long n) {
                         try {
                             iter.forEach(s -> sub.onNext(s));
+                            sub.onComplete();
                         } catch (Throwable t) {
                             sub.onError(t);
                         }
