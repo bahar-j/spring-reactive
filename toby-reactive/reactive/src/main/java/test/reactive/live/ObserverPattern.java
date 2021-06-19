@@ -4,7 +4,10 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Observable;
 import java.util.Observer;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
+@SuppressWarnings("deprecation")
 public class ObserverPattern {
 
     static class IntObservable extends Observable implements Runnable {
@@ -65,13 +68,22 @@ public class ObserverPattern {
         Observer ob = new Observer() {
             @Override
             public void update(Observable o, Object arg) {
-                System.out.println(arg);
+                System.out.println(Thread.currentThread().getName() + " " + arg);
             }
         };
 
         IntObservable io = new IntObservable();
         io.addObserver(ob);
 
-        io.run();
+        // iterable과 달리 별개의 쓰레드에서 동작하는 코드를 손쉽게 작성 가능
+        ExecutorService es = Executors.newSingleThreadExecutor();
+        es.execute(io);
+
+        System.out.println(Thread.currentThread().getName() + " EXIT");
+        es.shutdown();
+
+        // ObserverPattern의 문제점
+        // 1. 데이터를 다 줬을 때 Complete의 개념이 없음
+        // 2. Error 처리 -> ex.network 문제..-> 콜백 등을 통해 재시도해서 복구 가능한 예외인데 거기에 대한 고민이 없음
     }
 }
