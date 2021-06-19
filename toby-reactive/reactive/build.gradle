@@ -17,6 +17,10 @@ repositories {
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+	// https://mvnrepository.com/artifact/org.reactivestreams/reactive-streams
+	implementation group: 'org.reactivestreams', name: 'reactive-streams', version: '1.0.3'
+
 }
 
 test {
