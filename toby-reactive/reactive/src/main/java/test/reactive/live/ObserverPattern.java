@@ -82,8 +82,5 @@ public class ObserverPattern {
         System.out.println(Thread.currentThread().getName() + " EXIT");
         es.shutdown();
 
-        // ObserverPattern의 문제점
-        // 1. 데이터를 다 줬을 때 Complete의 개념이 없음
-        // 2. Error 처리 -> ex.network 문제..-> 콜백 등을 통해 재시도해서 복구 가능한 예외인데 거기에 대한 고민이 없음
     }
 }

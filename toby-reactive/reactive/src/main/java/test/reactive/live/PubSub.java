@@ -13,10 +13,7 @@ import static java.util.concurrent.Flow.*;
 
 public class PubSub {
     public static void main(String[] args) throws InterruptedException {
-        // Publisher = Observable : 연속된 데이터를 전달
-        // Publisher.subscribe(Subscriber)
-        // publisher가 subscriber의 onSubscribe(반드시 호출), onNext(0번 이상 호출), onError/onComplete(둘 중 하나)를 호출해줌
-        // Subscriber = Obeserver
+
         Iterable<Integer> itr = Arrays.asList(1,2,3,4,5); // DB에서 가져온 Collection 데이터
         ExecutorService es = Executors.newSingleThreadExecutor();
 
