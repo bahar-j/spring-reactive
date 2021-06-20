@@ -2,6 +2,7 @@ package test.reactive.live;
 
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Flow;
@@ -78,6 +79,7 @@ public class PubSub {
                 System.out.println("onError");
                 // 그냥 exception이 뜨는게 아니라 onError를 통해
                 // 상황 체크하고 재시도 등 여러 동작 가능
+
             }
 
             @Override
