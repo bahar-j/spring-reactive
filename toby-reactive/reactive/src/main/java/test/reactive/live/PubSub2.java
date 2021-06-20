@@ -16,10 +16,10 @@ import java.util.stream.Stream;
 public class PubSub2 {
     public static void main(String[] args) {
         Publisher<Integer> pub = iterPub(Stream.iterate(1, a -> a + 1).limit(10).collect(Collectors.toList()));
-//        Publisher<Integer> mapPub = mapPub(pub, s -> s * 10);
+//        Publisher<String> mapPub = mapPub(pub, s -> "[" + s + "]");
 //        Publisher<Integer> map2Pub = mapPub(mapPub, s -> -s);
 //        Publisher<Integer> sumPub = sumPub(pub);
-       Publisher<Integer> reducePub = reducePub(pub, 0 ,(BiFunction<Integer, Integer, Integer>) (a, b) -> a + b);
+        Publisher<StringBuilder> reducePub = reducePub(pub, new StringBuilder() ,(a, b) -> a.append(b+","));
         reducePub.subscribe(logSub());
     }
 
@@ -28,15 +28,16 @@ public class PubSub2 {
     // 1 -> (0, 1) -> 0 + 1 = 1
     // 2 -> (1, 2) -> 1 + 2 = 3
     // 3 -> (3, 3) -> 3 + 3 = 6
-    private static Publisher<Integer> reducePub(Publisher<Integer> pub, int init, BiFunction<Integer, Integer, Integer> bf) {
-        return new Publisher<Integer>() {
+    // 제네릭 정할 때 구체타입 예시 들어서 생각해놓고 바꾸면 좋음
+    private static <T, R> Publisher<R> reducePub(Publisher<T> pub, R init, BiFunction<R, T, R> bf) {
+        return new Publisher<R>() {
             @Override
-            public void subscribe(Subscriber<? super Integer> sub) {
-                pub.subscribe(new DelegateSub(sub){
-                    int result = init;
+            public void subscribe(Subscriber<? super R> sub) {
+                pub.subscribe(new DelegateSub<T, R>(sub){
+                    R result = init;
 
                     @Override
-                    public void onNext(Integer integer) {
+                    public void onNext(T integer) {
                         // 이렇게 하면 + 아니라도 가능
                         result = bf.apply(result, integer);
                     }
@@ -51,44 +52,47 @@ public class PubSub2 {
         };
     }
 
-    private static Publisher<Integer> sumPub(Publisher<Integer> pub) {
-        // 익명 클래스로 subscribe 메서드 오버라이딩한 것 람다식으로 변경
-        return (sub) -> {
-                pub.subscribe(new DelegateSub(sub){
-                    int sum = 0;
+//    private static Publisher<Integer> sumPub(Publisher<Integer> pub) {
+//        // 익명 클래스로 subscribe 메서드 오버라이딩한 것 람다식으로 변경
+//        return (sub) -> {
+//                pub.subscribe(new DelegateSub(sub){
+//                    int sum = 0;
+//
+//                    @Override
+//                    public void onNext(Integer integer) {
+//                        sum += integer;
+//                    }
+//
+//                    @Override
+//                    public void onComplete() {
+//                        System.out.println(sum);
+//                        sub.onNext(sum);
+//                        sub.onComplete();
+//                    }
+//                });
+//        };
+//    }
 
-                    @Override
-                    public void onNext(Integer integer) {
-                        sum += integer;
-                    }
+    // T 타입 퍼블리셔가 들어와서 R 타입으로 바뀌는 func
+    // Function<input type, return type>
+//    private static <T, R> Publisher<R> mapPub(Publisher<T> pub, Function<T, R> f) {
+//        return new Publisher<R>() {
+//            @Override
+//            public void subscribe(Subscriber<? super R> sub) {
+//                //pub: 원래 제일 왼쪽의 pub
+//                pub.subscribe(new DelegateSub<T, R>(sub) {
+//                    @Override
+//                    public void onNext(T val) {
+//                        sub.onNext(f.apply(val));
+//                    }
+//                });
+//            }
+//        };
+//    }
 
-                    @Override
-                    public void onComplete() {
-                        System.out.println(sum);
-                        sub.onNext(sum);
-                        sub.onComplete();
-                    }
-                });
-        };
-    }
-
-    private static Publisher<Integer> mapPub(Publisher<Integer> pub, Function<Integer, Integer> f) {
-        return new Publisher<Integer>() {
-            @Override
-            public void subscribe(Subscriber<? super Integer> sub) {
-                //pub: 원래 제일 왼쪽의 pub
-                pub.subscribe(new DelegateSub(sub) {
-                    @Override
-                    public void onNext(Integer integer) {
-                        sub.onNext(f.apply(integer));
-                    }
-                });
-            }
-        };
-    }
-
-    private static Subscriber<Integer> logSub() {
-        return new Subscriber<Integer>() {
+    // 제네릭 메소드에서는 <T> 타입 파라미터를 리턴 타입 앞에 줌
+    private static <T> Subscriber<T> logSub() {
+        return new Subscriber<T>() {
             @Override
             public void onSubscribe(Subscription s) {
                 System.out.println("subscribe");
@@ -96,8 +100,8 @@ public class PubSub2 {
             }
 
             @Override
-            public void onNext(Integer integer) {
-                System.out.println("job: " + integer);
+            public void onNext(T val) {
+                System.out.println("job: " + val);
             }
 
             @Override

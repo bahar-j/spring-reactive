@@ -3,10 +3,11 @@ package test.reactive.live;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
-public class DelegateSub implements Subscriber<Integer> {
+// Generic 클래스로 변환
+public class DelegateSub<T, R> implements Subscriber<T> {
     Subscriber sub;
 
-    public DelegateSub(Subscriber sub) {
+    public DelegateSub(Subscriber<? super R> sub) {
         this.sub = sub;
     }
 
@@ -16,7 +17,7 @@ public class DelegateSub implements Subscriber<Integer> {
     }
 
     @Override
-    public void onNext(Integer integer) {
+    public void onNext(T integer) {
         sub.onNext(integer);
     }
 
