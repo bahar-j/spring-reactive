@@ -40,18 +40,7 @@ public class SchedulerEx {
                     return "subscribeOn-";
                 }
             });
-            es.execute(() -> pub.subscribe(sub));
-        };
-
-        Publisher<Integer> publishOnPublisher = sub -> {
-            subscribeOnPublisher.subscribe(new Subscriber<Integer>() {
-                ExecutorService es = Executors.newSingleThreadExecutor(new CustomizableThreadFactory(){
-                    @Override
-                    public String getThreadNamePrefix() {
-                        return "publishOn-";
-                    }
-                });
-
+            es.execute(() -> pub.subscribe(new Subscriber<Integer>() {
                 @Override
                 public void onSubscribe(Subscription s) {
                     sub.onSubscribe(s);
@@ -59,22 +48,57 @@ public class SchedulerEx {
 
                 @Override
                 public void onNext(Integer integer) {
-                    es.execute(() -> sub.onNext(integer));
+                    sub.onNext(integer);
                 }
 
                 @Override
                 public void onError(Throwable t) {
-                    es.execute(() -> sub.onError(t));
+                    sub.onError(t);
+                    es.shutdown();
                 }
 
                 @Override
                 public void onComplete() {
-                    es.execute(() -> sub.onComplete());
+                    sub.onComplete();
+                    es.shutdown();
                 }
-            });
+            }));
         };
 
-        publishOnPublisher.subscribe(new Subscriber<Integer>() {
+//        Publisher<Integer> publishOnPublisher = sub -> {
+//            pub.subscribe(new Subscriber<Integer>() {
+//                ExecutorService es = Executors.newSingleThreadExecutor(new CustomizableThreadFactory(){
+//                    @Override
+//                    public String getThreadNamePrefix() {
+//                        return "publishOn-";
+//                    }
+//                });
+//
+//                @Override
+//                public void onSubscribe(Subscription s) {
+//                    sub.onSubscribe(s);
+//                }
+//
+//                @Override
+//                public void onNext(Integer integer) {
+//                    es.execute(() -> sub.onNext(integer));
+//                }
+//
+//                @Override
+//                public void onError(Throwable t) {
+//                    es.execute(() -> sub.onError(t));
+//                    es.shutdown();
+//                }
+//
+//                @Override
+//                public void onComplete() {
+//                    es.execute(() -> sub.onComplete());
+//                    es.shutdown();
+//                }
+//            });
+//        };
+
+        subscribeOnPublisher.subscribe(new Subscriber<Integer>() {
             @Override
             public void onSubscribe(Subscription s) {
                 log.debug("onSubscriber start");
