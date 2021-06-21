@@ -5,6 +5,9 @@ import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 @Slf4j
 public class SchedulerEx {
     public static void main(String[] args) {
@@ -12,6 +15,7 @@ public class SchedulerEx {
             sub.onSubscribe(new Subscription() {
                 @Override
                 public void request(long n) {
+                    log.debug("request()");
                     sub.onNext(1);
                     sub.onNext(2);
                     sub.onNext(3);
@@ -27,11 +31,44 @@ public class SchedulerEx {
             });
         };
 
-        pub.subscribe(new Subscriber<Integer>() {
+//        Publisher<Integer> subscribeOnPublisher = sub -> {
+//            // 동시에 하나의 쓰레드만 제공해주는 쓰레드 풀 -> 그 이상으로 요청하면 queue에서 대기해야함
+//            ExecutorService es = Executors.newSingleThreadExecutor();
+//            es.execute(() -> pub.subscribe(sub));
+//        };
+
+        Publisher<Integer> publishOnPublisher = sub -> {
+            pub.subscribe(new Subscriber<Integer>() {
+                ExecutorService es = Executors.newSingleThreadExecutor();
+
+                @Override
+                public void onSubscribe(Subscription s) {
+                    sub.onSubscribe(s);
+                }
+
+                @Override
+                public void onNext(Integer integer) {
+                    es.execute(() -> sub.onNext(integer));
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                    es.execute(() -> sub.onError(t));
+                }
+
+                @Override
+                public void onComplete() {
+                    es.execute(() -> sub.onComplete());
+                }
+            });
+        };
+
+        publishOnPublisher.subscribe(new Subscriber<Integer>() {
             @Override
             public void onSubscribe(Subscription s) {
+                log.debug("onSubscriber start");
                 s.request(Long.MAX_VALUE);
-                log.debug("onSubscriber");
+                log.debug("onSubscriber end");
             }
 
             @Override
