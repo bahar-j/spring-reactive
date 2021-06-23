@@ -1,4 +1,4 @@
-package test.reactive.live;
+package test.reactive.live.async;
 
 import lombok.extern.slf4j.Slf4j;
 

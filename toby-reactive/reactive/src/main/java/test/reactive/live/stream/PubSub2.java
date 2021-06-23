@@ -1,13 +1,11 @@
-package test.reactive.live;
+package test.reactive.live.stream;
 
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
+import test.reactive.live.stream.DelegateSub;
 
-import java.util.Arrays;
-import java.util.Iterator;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 

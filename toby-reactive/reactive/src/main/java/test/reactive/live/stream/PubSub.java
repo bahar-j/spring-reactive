@@ -1,4 +1,4 @@
-package test.reactive.live;
+package test.reactive.live.stream;
 
 import java.util.Arrays;
 import java.util.Iterator;

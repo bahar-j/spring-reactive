@@ -1,4 +1,4 @@
-package test.reactive.live;
+package test.reactive.live.stream;
 
 import reactor.core.publisher.Flux;
 

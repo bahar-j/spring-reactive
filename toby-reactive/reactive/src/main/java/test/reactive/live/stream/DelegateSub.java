@@ -1,4 +1,4 @@
-package test.reactive.live;
+package test.reactive.live.stream;
 
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;

@@ -1,4 +1,4 @@
-package test.reactive.live;
+package test.reactive.live.stream;
 
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
