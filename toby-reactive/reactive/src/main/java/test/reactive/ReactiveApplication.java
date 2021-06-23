@@ -18,6 +18,7 @@ import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.util.concurrent.ListenableFuture;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -64,6 +65,7 @@ public class ReactiveApplication {
 	public static class MyController {
 		//멀티코어면 코어 갯수에 맞춰 늘리는게 좋지만, 예제니까 극단적 상황 가정
 		AsyncRestTemplate rt = new AsyncRestTemplate(new Netty4ClientHttpRequestFactory(new NioEventLoopGroup(1)));
+		@Autowired MyService myService;
 //		@Autowired MyService myService;
 //		Queue<DeferredResult> results = new ConcurrentLinkedQueue<>();
 
@@ -134,18 +136,40 @@ public class ReactiveApplication {
 		public DeferredResult<String> rest(int idx){
 			DeferredResult<String> dr = new DeferredResult<>();
 
-			ListenableFuture<ResponseEntity<String>> f1 = rt.getForEntity("http://localhost:8082/service?req={req}", String.class,"hello"+idx);
-			f1.addCallback(s -> {
-				dr.setResult(s.getBody() + "/work");
-			}, e -> {
-				dr.setErrorResult(e.getMessage());
-			});
+//			ListenableFuture<ResponseEntity<String>> f1 = rt.getForEntity("http://localhost:8082/service?req={req}", String.class,"hello"+idx);
+//			f1.addCallback(s -> {
+//				dr.setResult(s.getBody() + "/work");
+//			}, e -> {
+//				dr.setErrorResult(e.getMessage());
+//			});
 
+			toCF(rt.getForEntity("http://localhost:8082/service?req={req}", String.class, "h" + idx))
+					.thenCompose(s -> {
+						//여기서 에러나면 첫번째 api만 호출되고 에러 메세지가 클라로 넘겨짐
+//						if (1==1) throw new RuntimeException("error");
+						return toCF(rt.getForEntity("http://localhost:8082/service2?req={req}", String.class, s.getBody()));
+					})
+					//.thenCompose(s2 -> toCF(myService.work(s2.getBody())))
+					// 그냥 아래처럼 두면 앞의 쓰레드를 물고 있게 됨
+					//.thenApply(s2 -> myService.work(s2.getBody()))
+					.thenApplyAsync(s2 -> myService.work(s2.getBody()))
+					.thenAccept(s3 -> dr.setResult(s3))
+					.exceptionally(e -> {
+						dr.setErrorResult(e.getMessage());
+						return (Void) null; //return 필요
+					});
 			return dr;
+		}
+
+		// 모든 ListenableFuture는 CompletableFuture로 간단히 대체될 수 있음
+		<T> CompletableFuture<T> toCF(ListenableFuture<T> lf){
+			CompletableFuture<T> cf = new CompletableFuture<T>();
+			lf.addCallback(s -> cf.complete(s), e -> cf.completeExceptionally(e));
+			return cf;
 		}
 	}
 
-	@Component
+	@Service
 	public static class MyService {
 		// 한 개면 기본으로 tp 쓰지만, 여러 개 쓰는 경우 value로 설정
 		@Async(value = "tp")
@@ -153,6 +177,16 @@ public class ReactiveApplication {
 			log.info("hello()");
 			Thread.sleep(1000);
 			return new AsyncResult<>("Hello");
+		}
+
+//		@Async
+//		public ListenableFuture<String> work(String req){
+//			return new AsyncResult<>(req + "/asyncwork");
+//		}
+
+		// 굳이 비동기일 필요 없음
+		public String work(String req){
+			return req + "/asyncwork";
 		}
 	}
 
