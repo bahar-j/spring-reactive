@@ -10,6 +10,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -98,6 +99,7 @@ public class ReactiveApplication {
 //			return "OK";
 //		};
 
+		// 비동기
 		@GetMapping("/emitter")
 		public ResponseBodyEmitter emitter() throws InterruptedException {
 			ResponseBodyEmitter emitter = new ResponseBodyEmitter();
@@ -117,11 +119,17 @@ public class ReactiveApplication {
 			return emitter;
 		};
 
+		// 동기
 		@GetMapping("/rest")
 		public String rest(int idx){
 			String res = rt.getForObject("http://localhost:8082/service?req={req}", String.class,"hello"+idx);
 			return res;
 		}
+
+//		@GetMapping("/rest")
+//		public ResponseEntity<String> rest(int idx){
+//			return rt.getForEntity("http://localhost:8082/service?req={req}", String.class,"hello"+idx);
+//		}
 	}
 
 	@Component

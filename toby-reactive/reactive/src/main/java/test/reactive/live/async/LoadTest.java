@@ -17,7 +17,7 @@ public class LoadTest {
         RestTemplate rt = new RestTemplate();
         String url = "http://localhost:8082/service?req={req}";
 
-        CyclicBarrier barrier = new CyclicBarrier(100);
+        CyclicBarrier barrier = new CyclicBarrier(101);
 
 //        StopWatch main = new StopWatch();
 //        main.start();
