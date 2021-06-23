@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.AsyncRestTemplate;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.async.DeferredResult;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
@@ -59,7 +60,7 @@ public class ReactiveApplication {
 
 	@RestController
 	public static class MyController {
-		RestTemplate rt = new RestTemplate();
+		AsyncRestTemplate rt = new AsyncRestTemplate();
 //		@Autowired MyService myService;
 //		Queue<DeferredResult> results = new ConcurrentLinkedQueue<>();
 
@@ -120,16 +121,16 @@ public class ReactiveApplication {
 		};
 
 		// 동기
-		@GetMapping("/rest")
-		public String rest(int idx){
-			String res = rt.getForObject("http://localhost:8082/service?req={req}", String.class,"hello"+idx);
-			return res;
-		}
-
 //		@GetMapping("/rest")
-//		public ResponseEntity<String> rest(int idx){
-//			return rt.getForEntity("http://localhost:8082/service?req={req}", String.class,"hello"+idx);
+//		public String rest(int idx){
+//			String res = rt.getForObject("http://localhost:8082/service?req={req}", String.class,"hello"+idx);
+//			return res;
 //		}
+
+		@GetMapping("/rest")
+		public ListenableFuture<ResponseEntity<String>> rest(int idx){
+			return rt.getForEntity("http://localhost:8082/service?req={req}", String.class,"hello"+idx);
+		}
 	}
 
 	@Component
