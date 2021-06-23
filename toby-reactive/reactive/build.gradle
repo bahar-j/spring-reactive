@@ -27,6 +27,8 @@ dependencies {
 	testCompileOnly("org.projectlombok:lombok")
 	annotationProcessor("org.projectlombok:lombok")
 	testAnnotationProcessor("org.projectlombok:lombok")
+
+	implementation group: 'io.netty', name: 'netty-all', version: '4.1.65.Final'
 }
 
 test {

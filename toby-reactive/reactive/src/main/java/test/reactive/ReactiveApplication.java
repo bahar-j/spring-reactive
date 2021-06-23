@@ -1,5 +1,6 @@
 package test.reactive;
 
+import io.netty.channel.nio.NioEventLoopGroup;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
@@ -11,6 +12,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.Netty4ClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -60,7 +62,8 @@ public class ReactiveApplication {
 
 	@RestController
 	public static class MyController {
-		AsyncRestTemplate rt = new AsyncRestTemplate();
+		//멀티코어면 코어 갯수에 맞춰 늘리는게 좋지만, 예제니까 극단적 상황 가정
+		AsyncRestTemplate rt = new AsyncRestTemplate(new Netty4ClientHttpRequestFactory(new NioEventLoopGroup(1)));
 //		@Autowired MyService myService;
 //		Queue<DeferredResult> results = new ConcurrentLinkedQueue<>();
 
@@ -128,8 +131,17 @@ public class ReactiveApplication {
 //		}
 
 		@GetMapping("/rest")
-		public ListenableFuture<ResponseEntity<String>> rest(int idx){
-			return rt.getForEntity("http://localhost:8082/service?req={req}", String.class,"hello"+idx);
+		public DeferredResult<String> rest(int idx){
+			DeferredResult<String> dr = new DeferredResult<>();
+
+			ListenableFuture<ResponseEntity<String>> f1 = rt.getForEntity("http://localhost:8082/service?req={req}", String.class,"hello"+idx);
+			f1.addCallback(s -> {
+				dr.setResult(s.getBody() + "/work");
+			}, e -> {
+				dr.setErrorResult(e.getMessage());
+			});
+
+			return dr;
 		}
 	}
 
