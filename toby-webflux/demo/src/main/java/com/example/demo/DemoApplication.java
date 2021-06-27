@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.web.embedded.netty.NettyReactiveWebServerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.client.Netty4ClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.Async;
@@ -16,6 +17,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.AsyncRestTemplate;
 import org.springframework.web.context.request.async.DeferredResult;
+import org.springframework.web.reactive.function.client.ClientResponse;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -27,40 +31,34 @@ public class DemoApplication {
 	static final String URL1 = "http://localhost:8082/service?req={req}";
 	static final String URL2 = "http://localhost:8082/service2?req={req}";
 
-	AsyncRestTemplate rt = new AsyncRestTemplate(new Netty4ClientHttpRequestFactory(new NioEventLoopGroup(1)));
+	// 같은 프로젝트에서 netty랑 톰캣 같이 띄우는게 안됨
+//	@Bean
+//	NettyReactiveWebServerFactory nettyReactiveWebServerFactory(){
+//		return new NettyReactiveWebServerFactory();
+//	}
 
 	@Autowired
 	MyService myService;
 
-	public static void main(String[] args) {
-		SpringApplication.run(DemoApplication.class, args);
-	}
+	//AsyncRestTemplate과 유사
+	WebClient client = WebClient.create();
 
 	@GetMapping("/rest")
-	public DeferredResult<String> rest(int idx){
-		DeferredResult<String> dr = new DeferredResult<>();
-
-		// getForEntity: 응답코드, 헤더, 바디 다 받아옴(http response 통째로)
-		toCF(rt.getForEntity(URL1, String.class, "h" + idx))
-				// s(response 전체)에서 바디만 가져와서 다시 api 호출
-				.thenCompose(s -> {
-					return toCF(rt.getForEntity(URL2, String.class, s.getBody()));
-				})
-				// Async 붙이면 새로운 쓰레드에 태워서 비동기 방식으로 동작하고 기존 쓰레드는 return
-				.thenApplyAsync(s2 -> myService.work(s2.getBody()))
-				.thenAccept(s3 -> dr.setResult(s3))
-				.exceptionally(e -> {
-					dr.setErrorResult(e.getMessage());
-					// object 타입으로 리턴하기 위해 (Void) 붙임
-					return (Void) null;
-				});
-		return dr;
+	public Mono<String> rest(int idx){
+//		Mono<ClientResponse> res = client.get().uri(URL1, idx).exchange();
+//		Mono<String> body = res.flatMap(clientResponse -> clientResponse.bodyToMono(String.class));
+//		return body;
+		return client.get().uri(URL1, idx).exchange() // Mono<ClientResponse>
+				.flatMap(clientResponse -> clientResponse.bodyToMono(String.class)) // clientResponse -> Mono<String>
+				.flatMap(res1 -> client.get().uri(URL2, res1).exchange()) // Stirng -> Mono<ClientResponse>
+				.flatMap(c -> c.bodyToMono(String.class)) // clientResponse -> Mono<String>
+				.map(res2 -> myService.work(res2)); // Mono<String> -> Mono<String>
 	}
 
-	<T> CompletableFuture<T> toCF(ListenableFuture<T> lf){
-		CompletableFuture<T> cf = new CompletableFuture<T>();
-		lf.addCallback(s -> cf.complete(s), e -> cf.completeExceptionally(e));
-		return cf;
+	public static void main(String[] args) {
+		System.setProperty("reactor.ipc.netty.workerCount", "2");
+		System.setProperty("reactor.ipc.netty.pool.maxConnections", "2000");
+		SpringApplication.run(DemoApplication.class, args);
 	}
 
 	@Service
