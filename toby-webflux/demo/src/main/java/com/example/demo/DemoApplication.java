@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.http.client.Netty4ClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.concurrent.ListenableFuture;
@@ -26,6 +27,7 @@ import java.util.concurrent.CompletableFuture;
 @RestController
 @Slf4j
 @SpringBootApplication
+@EnableAsync
 public class DemoApplication {
 
 	static final String URL1 = "http://localhost:8082/service?req={req}";
@@ -52,7 +54,8 @@ public class DemoApplication {
 				.flatMap(clientResponse -> clientResponse.bodyToMono(String.class)) // clientResponse -> Mono<String>
 				.flatMap(res1 -> client.get().uri(URL2, res1).exchange()) // Stirng -> Mono<ClientResponse>
 				.flatMap(c -> c.bodyToMono(String.class)) // clientResponse -> Mono<String>
-				.map(res2 -> myService.work(res2)); // Mono<String> -> Mono<String>
+				.flatMap(res2 -> Mono.fromCompletionStage(myService.work(res2))); // Mono<String> -> Mono<String>
+				//.doOnNext(c -> log.info(c))
 	}
 
 	public static void main(String[] args) {
@@ -63,8 +66,9 @@ public class DemoApplication {
 
 	@Service
 	public static class MyService {
-		public String work(String req){
-			return req + "/asyncwork";
+		@Async
+		public CompletableFuture<String> work(String req){
+			return CompletableFuture.completedFuture(req + "/asyncwork");
 		}
 	}
 
