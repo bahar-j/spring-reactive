@@ -54,8 +54,9 @@ public class DemoApplication {
 				.flatMap(clientResponse -> clientResponse.bodyToMono(String.class)) // clientResponse -> Mono<String>
 				.flatMap(res1 -> client.get().uri(URL2, res1).exchange()) // Stirng -> Mono<ClientResponse>
 				.flatMap(c -> c.bodyToMono(String.class)) // clientResponse -> Mono<String>
+//				.doOnNext(c -> log.info(c))
 				.flatMap(res2 -> Mono.fromCompletionStage(myService.work(res2))); // Mono<String> -> Mono<String>
-				//.doOnNext(c -> log.info(c))
+//				.doOnNext(c -> log.info(c));
 	}
 
 	public static void main(String[] args) {
